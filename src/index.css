@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --font-chalk: "Amatic SC", cursive;
+  --font-menu: "Josefin Sans", sans-serif;
+  --color-chalk: #E8E0D0;
+  --color-chalk-muted: #8B8070;
+  --color-gold: #C0C0C0;
+  --color-board: #2A2A2A;
+}
+
+body {
+  background: #2A2A2A url('/textures/chalkboard.webp') center top / 100% auto repeat-y;
+  min-height: 100vh;
+}
+
+/* Chalk ornament line */
+.chalk-ornament {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chalk-ornament::before,
+.chalk-ornament::after {
+  content: "── ✦ ──";
+  font-size: 0.75rem;
+  opacity: 0.4;
+  letter-spacing: 0.1em;
+  transition: opacity 500ms;
+}
+
+.group:hover .chalk-ornament::before,
+.group:hover .chalk-ornament::after {
+  opacity: 0.7;
+}
