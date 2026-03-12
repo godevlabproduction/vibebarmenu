@@ -6,9 +6,15 @@ export default function CategoriesManager() {
   const [loading, setLoading] = useState(true)
   const [newNameMk, setNewNameMk] = useState('')
   const [newNameEn, setNewNameEn] = useState('')
+  const [newImageFile, setNewImageFile] = useState(null)
+  const [newImagePreview, setNewImagePreview] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editMk, setEditMk] = useState('')
   const [editEn, setEditEn] = useState('')
+  const [editImageFile, setEditImageFile] = useState(null)
+  const [editImagePreview, setEditImagePreview] = useState(null)
+  const [editImageUrl, setEditImageUrl] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   const fetchCategories = async () => {
     setLoading(true)
@@ -22,33 +28,89 @@ export default function CategoriesManager() {
 
   useEffect(() => { fetchCategories() }, [])
 
+  const uploadImage = async (file) => {
+    if (!file) return null
+    const ext = file.name.split('.').pop()
+    const fileName = `${Date.now()}.${ext}`
+    const { error } = await supabase.storage
+      .from('menu-images')
+      .upload(`categories/${fileName}`, file, { upsert: true })
+    if (error) throw error
+    const { data } = supabase.storage
+      .from('menu-images')
+      .getPublicUrl(`categories/${fileName}`)
+    return data.publicUrl
+  }
+
+  const handleNewImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setNewImageFile(file)
+      setNewImagePreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleEditImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setEditImageFile(file)
+      setEditImagePreview(URL.createObjectURL(file))
+    }
+  }
+
   const addCategory = async (e) => {
     e.preventDefault()
     if (!newNameMk.trim() || !newNameEn.trim()) return
-    const maxOrder = Math.max(0, ...categories.map((c) => c.sort_order))
-    await supabase.from('categories').insert({
-      name_mk: newNameMk.trim(),
-      name_en: newNameEn.trim(),
-      sort_order: maxOrder + 1,
-    })
-    setNewNameMk('')
-    setNewNameEn('')
-    fetchCategories()
+    setUploading(true)
+    try {
+      const image_url = await uploadImage(newImageFile)
+      const maxOrder = Math.max(0, ...categories.map((c) => c.sort_order))
+      await supabase.from('categories').insert({
+        name_mk: newNameMk.trim(),
+        name_en: newNameEn.trim(),
+        image_url,
+        sort_order: maxOrder + 1,
+      })
+      setNewNameMk('')
+      setNewNameEn('')
+      setNewImageFile(null)
+      setNewImagePreview(null)
+      fetchCategories()
+    } catch (err) {
+      alert('Грешка: ' + err.message)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const startEdit = (cat) => {
     setEditingId(cat.id)
     setEditMk(cat.name_mk)
     setEditEn(cat.name_en)
+    setEditImageUrl(cat.image_url || '')
+    setEditImageFile(null)
+    setEditImagePreview(null)
   }
 
   const saveEdit = async (id) => {
-    await supabase
-      .from('categories')
-      .update({ name_mk: editMk, name_en: editEn })
-      .eq('id', id)
-    setEditingId(null)
-    fetchCategories()
+    setUploading(true)
+    try {
+      const image_url = editImageFile
+        ? await uploadImage(editImageFile)
+        : editImageUrl || null
+      await supabase
+        .from('categories')
+        .update({ name_mk: editMk, name_en: editEn, image_url })
+        .eq('id', id)
+      setEditingId(null)
+      setEditImageFile(null)
+      setEditImagePreview(null)
+      fetchCategories()
+    } catch (err) {
+      alert('Грешка: ' + err.message)
+    } finally {
+      setUploading(false)
+    }
   }
 
   const toggleLayout = async (cat) => {
@@ -104,11 +166,36 @@ export default function CategoriesManager() {
             className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        {/* Image upload */}
+        <label className="cursor-pointer block mb-2">
+          {newImagePreview ? (
+            <div className="relative w-full h-24 rounded-lg overflow-hidden bg-gray-100">
+              <img src={newImagePreview} alt="Preview" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
+                <span className="text-white text-xs font-medium opacity-0 hover:opacity-100">Промени</span>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center gap-2 hover:border-gray-400 transition-colors">
+              <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-xs text-gray-400">Додади слика</span>
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleNewImageChange}
+            className="hidden"
+          />
+        </label>
         <button
           type="submit"
-          className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          disabled={uploading}
+          className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
         >
-          + Додади категорија
+          {uploading ? 'Се качува...' : '+ Додади категорија'}
         </button>
       </form>
 
@@ -133,12 +220,37 @@ export default function CategoriesManager() {
                     className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                {/* Edit image upload */}
+                <label className="cursor-pointer block mb-2">
+                  {(editImagePreview || editImageUrl) ? (
+                    <div className="relative w-full h-24 rounded-lg overflow-hidden bg-gray-100">
+                      <img src={editImagePreview || editImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <span className="text-white text-xs font-medium opacity-0 hover:opacity-100">Промени</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center gap-2 hover:border-gray-400 transition-colors">
+                      <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs text-gray-400">Додади слика</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditImageChange}
+                    className="hidden"
+                  />
+                </label>
                 <div className="flex gap-2">
                   <button
                     onClick={() => saveEdit(cat.id)}
-                    className="px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg"
+                    disabled={uploading}
+                    className="px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg disabled:opacity-50"
                   >
-                    Зачувај
+                    {uploading ? 'Се качува...' : 'Зачувај'}
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
@@ -167,6 +279,21 @@ export default function CategoriesManager() {
                     ▼
                   </button>
                 </div>
+
+                {/* Image thumbnail */}
+                {cat.image_url ? (
+                  <img
+                    src={cat.image_url}
+                    alt=""
+                    className="w-8 h-8 rounded object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded bg-gray-100 shrink-0 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
 
                 {/* Names */}
                 <div className="flex-1 min-w-0">

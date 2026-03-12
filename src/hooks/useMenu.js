@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 const MOCK_CATEGORIES = [
-  { id: '1', name_mk: 'Безалкохолни пијалоци', name_en: 'Non-Alcoholic Drinks', layout: 'grid-2', sort_order: 1 },
-  { id: '2', name_mk: 'Кафе', name_en: 'Coffee', layout: 'grid-2', sort_order: 2 },
-  { id: '3', name_mk: 'Бабл чаеви', name_en: 'Bubble Tea', layout: 'grid-1', sort_order: 3 },
-  { id: '4', name_mk: 'Пиво', name_en: 'Beer', layout: 'grid-2', sort_order: 4 },
-  { id: '5', name_mk: 'Вина', name_en: 'Wines', layout: 'grid-2', sort_order: 5 },
-  { id: '6', name_mk: 'Алкохолни пијалоци', name_en: 'Alcoholic Drinks', layout: 'grid-2', sort_order: 6 },
-  { id: '7', name_mk: 'Коктели', name_en: 'Cocktails', layout: 'grid-1', sort_order: 7 },
+  { id: '1', name_mk: 'Безалкохолни пијалоци', name_en: 'Non-Alcoholic Drinks', layout: 'grid-2', sort_order: 1, image_url: 'https://picsum.photos/seed/softdrinks/400/400' },
+  { id: '2', name_mk: 'Кафе', name_en: 'Coffee', layout: 'grid-2', sort_order: 2, image_url: 'https://picsum.photos/seed/coffee/400/400' },
+  { id: '3', name_mk: 'Бабл чаеви', name_en: 'Bubble Tea', layout: 'grid-1', sort_order: 3, image_url: 'https://picsum.photos/seed/bubbletea/400/400' },
+  { id: '4', name_mk: 'Пиво', name_en: 'Beer', layout: 'grid-2', sort_order: 4, image_url: 'https://picsum.photos/seed/beer/400/400' },
+  { id: '5', name_mk: 'Вина', name_en: 'Wines', layout: 'grid-2', sort_order: 5, image_url: 'https://picsum.photos/seed/wine/400/400' },
+  { id: '6', name_mk: 'Алкохолни пијалоци', name_en: 'Alcoholic Drinks', layout: 'grid-2', sort_order: 6, image_url: 'https://picsum.photos/seed/spirits/400/400' },
+  { id: '7', name_mk: 'Коктели', name_en: 'Cocktails', layout: 'grid-1', sort_order: 7, image_url: 'https://picsum.photos/seed/cocktail/400/400' },
 ]
 
 const MOCK_ITEMS = [
