@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useMenu } from '../hooks/useMenu'
 import { useLanguage } from '../context/LanguageContext'
 import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 
 const TAG_LABELS = {
   vegan: { mk: 'Вегански', en: 'Vegan' },
@@ -93,7 +94,7 @@ export default function ProductPage() {
           </div>
 
           {/* Divider */}
-          <div className="w-12 h-px bg-white/20 my-4" />
+          <div className="w-12 h-px bg-white/20 my-2" />
 
           {/* Description */}
           {description && (
@@ -124,6 +125,8 @@ export default function ProductPage() {
           )}
         </div>
       </div>
+
+      <Footer />
     </div>
   )
 }

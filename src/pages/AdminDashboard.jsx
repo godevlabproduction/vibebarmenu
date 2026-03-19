@@ -1,31 +1,49 @@
 import { useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { ToastProvider } from '../context/ToastContext'
 import AdminLayout from '../components/admin/AdminLayout'
+import Dashboard from '../components/admin/Dashboard'
 import MenuItemsTable from '../components/admin/MenuItemsTable'
 import MenuItemForm from '../components/admin/MenuItemForm'
 import CategoriesManager from '../components/admin/CategoriesManager'
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [editingItem, setEditingItem] = useState(undefined)
 
-  return (
-    <AdminLayout>
-      <Routes>
-        <Route
-          index
-          element={
-            editingItem !== undefined ? (
-              <MenuItemForm
-                item={editingItem}
-                onClose={() => setEditingItem(undefined)}
-              />
-            ) : (
-              <MenuItemsTable onEdit={setEditingItem} />
-            )
-          }
+  const handleNavigate = (tab, options) => {
+    setActiveTab(tab)
+    if (tab === 'items' && options?.create) {
+      setEditingItem(null)
+    }
+  }
+
+  const renderContent = () => {
+    if (activeTab === 'items' && editingItem !== undefined) {
+      return (
+        <MenuItemForm
+          item={editingItem}
+          onClose={() => setEditingItem(undefined)}
         />
-        <Route path="categories" element={<CategoriesManager />} />
-      </Routes>
-    </AdminLayout>
+      )
+    }
+
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard onNavigate={handleNavigate} />
+      case 'items':
+        return <MenuItemsTable onEdit={setEditingItem} />
+      case 'categories':
+        return <CategoriesManager />
+      default:
+        return <Dashboard onNavigate={handleNavigate} />
+    }
+  }
+
+  return (
+    <ToastProvider>
+      <AdminLayout activeTab={activeTab} onTabChange={setActiveTab}>
+        {renderContent()}
+      </AdminLayout>
+    </ToastProvider>
   )
 }

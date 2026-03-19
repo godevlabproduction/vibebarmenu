@@ -19,7 +19,7 @@ export default function App() {
             <Route path="/menu/:categoryId/:itemId" element={<ProductPage />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route
-              path="/admin/*"
+              path="/admin"
               element={
                 <ProtectedRoute>
                   <AdminDashboard />

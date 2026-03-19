@@ -1,8 +1,115 @@
 import { useState, useEffect } from 'react'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../../lib/supabase'
+import { useToast } from '../../context/ToastContext'
+import ConfirmModal from './ConfirmModal'
+
+function SortableCategoryItem({ cat, isEditing, editMk, editEn, editImagePreview, editImageUrl, uploading, onEditMk, onEditEn, onEditImageChange, onSaveEdit, onCancelEdit, onStartEdit, onToggleLayout, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="bg-white rounded-lg border border-gray-200 p-3">
+      {isEditing ? (
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+            <input
+              value={editMk}
+              onChange={(e) => onEditMk(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              value={editEn}
+              onChange={(e) => onEditEn(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <label className="cursor-pointer block mb-2">
+            {(editImagePreview || editImageUrl) ? (
+              <div className="relative w-full h-24 rounded-lg overflow-hidden bg-gray-100">
+                <img src={editImagePreview || editImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <span className="text-white text-xs font-medium opacity-0 hover:opacity-100">Промени</span>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center gap-2 hover:border-gray-400 transition-colors">
+                <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs text-gray-400">Додади слика</span>
+              </div>
+            )}
+            <input type="file" accept="image/*" onChange={onEditImageChange} className="hidden" />
+          </label>
+          <div className="flex gap-2">
+            <button onClick={() => onSaveEdit(cat.id)} disabled={uploading} className="px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg disabled:opacity-50">
+              {uploading ? 'Се качува...' : 'Зачувај'}
+            </button>
+            <button onClick={onCancelEdit} className="px-3 py-1.5 text-gray-500 text-xs font-medium">Откажи</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          {/* Drag handle */}
+          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 shrink-0 touch-none">
+            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="5" cy="3" r="1.5" /><circle cx="11" cy="3" r="1.5" />
+              <circle cx="5" cy="8" r="1.5" /><circle cx="11" cy="8" r="1.5" />
+              <circle cx="5" cy="13" r="1.5" /><circle cx="11" cy="13" r="1.5" />
+            </svg>
+          </button>
+
+          {/* Image thumbnail */}
+          {cat.image_url ? (
+            <img src={cat.image_url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+          ) : (
+            <div className="w-8 h-8 rounded bg-gray-100 shrink-0 flex items-center justify-center">
+              <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          )}
+
+          {/* Names */}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-gray-900 truncate">{cat.name_mk}</div>
+            <div className="text-xs text-gray-400 truncate">{cat.name_en}</div>
+          </div>
+
+          {/* Layout toggle */}
+          <button onClick={() => onToggleLayout(cat)} className={`text-xs px-2 py-1 rounded-md font-medium transition-colors shrink-0 ${cat.layout === 'grid-1' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+            {cat.layout === 'grid-1' ? '1 кол' : '2 кол'}
+          </button>
+
+          {/* Edit */}
+          <button onClick={() => onStartEdit(cat)} className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </button>
+
+          {/* Delete */}
+          <button onClick={() => onDelete(cat.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function CategoriesManager() {
   const [categories, setCategories] = useState([])
+  const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [newNameMk, setNewNameMk] = useState('')
   const [newNameEn, setNewNameEn] = useState('')
@@ -15,14 +122,17 @@ export default function CategoriesManager() {
   const [editImagePreview, setEditImagePreview] = useState(null)
   const [editImageUrl, setEditImageUrl] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const { showToast } = useToast()
 
   const fetchCategories = async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('categories')
-      .select('*')
-      .order('sort_order')
-    setCategories(data || [])
+    const [catsRes, itemsRes] = await Promise.all([
+      supabase.from('categories').select('*').order('sort_order'),
+      supabase.from('menu_items').select('id, category_id'),
+    ])
+    setCategories(catsRes.data || [])
+    setItems(itemsRes.data || [])
     setLoading(false)
   }
 
@@ -75,9 +185,10 @@ export default function CategoriesManager() {
       setNewNameEn('')
       setNewImageFile(null)
       setNewImagePreview(null)
+      showToast('Категоријата е додадена')
       fetchCategories()
     } catch (err) {
-      alert('Грешка: ' + err.message)
+      showToast('Грешка: ' + err.message, 'error')
     } finally {
       setUploading(false)
     }
@@ -105,9 +216,10 @@ export default function CategoriesManager() {
       setEditingId(null)
       setEditImageFile(null)
       setEditImagePreview(null)
+      showToast('Категоријата е зачувана')
       fetchCategories()
     } catch (err) {
-      alert('Грешка: ' + err.message)
+      showToast('Грешка: ' + err.message, 'error')
     } finally {
       setUploading(false)
     }
@@ -122,26 +234,48 @@ export default function CategoriesManager() {
     fetchCategories()
   }
 
-  const deleteCategory = async (id) => {
-    if (!window.confirm('Избриши ја категоријата и сите нејзини производи?')) return
-    await supabase.from('categories').delete().eq('id', id)
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    const { error } = await supabase.from('categories').delete().eq('id', deleteTarget)
+    if (error) {
+      showToast('Грешка при бришење', 'error')
+    } else {
+      showToast('Категоријата е избришана')
+    }
+    setDeleteTarget(null)
     fetchCategories()
   }
 
-  const moveCategory = async (index, direction) => {
-    const newCats = [...categories]
-    const swapIndex = index + direction
-    if (swapIndex < 0 || swapIndex >= newCats.length) return
+  const getItemCount = (catId) => items.filter((i) => i.category_id === catId).length
 
-    const tempOrder = newCats[index].sort_order
-    newCats[index].sort_order = newCats[swapIndex].sort_order
-    newCats[swapIndex].sort_order = tempOrder
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
-    await Promise.all([
-      supabase.from('categories').update({ sort_order: newCats[index].sort_order }).eq('id', newCats[index].id),
-      supabase.from('categories').update({ sort_order: newCats[swapIndex].sort_order }).eq('id', newCats[swapIndex].id),
-    ])
-    fetchCategories()
+  const handleDragEnd = async (event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = categories.findIndex((c) => c.id === active.id)
+    const newIndex = categories.findIndex((c) => c.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    // Optimistic reorder
+    const reordered = [...categories]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+
+    const updated = reordered.map((c, i) => ({ ...c, sort_order: i + 1 }))
+    setCategories(updated)
+
+    // Persist
+    const results = await Promise.all(
+      updated.map((c) =>
+        supabase.from('categories').update({ sort_order: c.sort_order }).eq('id', c.id)
+      )
+    )
+    if (results.some((r) => r.error)) {
+      showToast('Грешка при преместување', 'error')
+      fetchCategories()
+    }
   }
 
   if (loading) return <div className="text-gray-400 py-8 text-center">Се вчитува...</div>
@@ -200,149 +334,47 @@ export default function CategoriesManager() {
       </form>
 
       {/* Category list */}
-      <div className="space-y-2">
-        {categories.map((cat, index) => (
-          <div
-            key={cat.id}
-            className="bg-white rounded-lg border border-gray-200 p-3"
-          >
-            {editingId === cat.id ? (
-              <div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-                  <input
-                    value={editMk}
-                    onChange={(e) => setEditMk(e.target.value)}
-                    className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <input
-                    value={editEn}
-                    onChange={(e) => setEditEn(e.target.value)}
-                    className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                {/* Edit image upload */}
-                <label className="cursor-pointer block mb-2">
-                  {(editImagePreview || editImageUrl) ? (
-                    <div className="relative w-full h-24 rounded-lg overflow-hidden bg-gray-100">
-                      <img src={editImagePreview || editImageUrl} alt="Preview" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
-                        <span className="text-white text-xs font-medium opacity-0 hover:opacity-100">Промени</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center gap-2 hover:border-gray-400 transition-colors">
-                      <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="text-xs text-gray-400">Додади слика</span>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleEditImageChange}
-                    className="hidden"
-                  />
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => saveEdit(cat.id)}
-                    disabled={uploading}
-                    className="px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg disabled:opacity-50"
-                  >
-                    {uploading ? 'Се качува...' : 'Зачувај'}
-                  </button>
-                  <button
-                    onClick={() => setEditingId(null)}
-                    className="px-3 py-1.5 text-gray-500 text-xs font-medium"
-                  >
-                    Откажи
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                {/* Reorder */}
-                <div className="flex flex-col shrink-0">
-                  <button
-                    onClick={() => moveCategory(index, -1)}
-                    disabled={index === 0}
-                    className="text-gray-400 hover:text-gray-700 disabled:opacity-20 text-xs leading-none p-0.5"
-                  >
-                    ▲
-                  </button>
-                  <button
-                    onClick={() => moveCategory(index, 1)}
-                    disabled={index === categories.length - 1}
-                    className="text-gray-400 hover:text-gray-700 disabled:opacity-20 text-xs leading-none p-0.5"
-                  >
-                    ▼
-                  </button>
-                </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {categories.map((cat) => (
+              <SortableCategoryItem
+                key={cat.id}
+                cat={cat}
+                isEditing={editingId === cat.id}
+                editMk={editMk}
+                editEn={editEn}
+                editImagePreview={editImagePreview}
+                editImageUrl={editImageUrl}
+                uploading={uploading}
+                onEditMk={setEditMk}
+                onEditEn={setEditEn}
+                onEditImageChange={handleEditImageChange}
+                onSaveEdit={saveEdit}
+                onCancelEdit={() => setEditingId(null)}
+                onStartEdit={startEdit}
+                onToggleLayout={toggleLayout}
+                onDelete={setDeleteTarget}
+              />
+            ))}
 
-                {/* Image thumbnail */}
-                {cat.image_url ? (
-                  <img
-                    src={cat.image_url}
-                    alt=""
-                    className="w-8 h-8 rounded object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded bg-gray-100 shrink-0 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                )}
-
-                {/* Names */}
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">{cat.name_mk}</div>
-                  <div className="text-xs text-gray-400 truncate">{cat.name_en}</div>
-                </div>
-
-                {/* Layout toggle */}
-                <button
-                  onClick={() => toggleLayout(cat)}
-                  className={`text-xs px-2 py-1 rounded-md font-medium transition-colors shrink-0 ${
-                    cat.layout === 'grid-1'
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}
-                >
-                  {cat.layout === 'grid-1' ? '1 кол' : '2 кол'}
-                </button>
-
-                {/* Edit */}
-                <button
-                  onClick={() => startEdit(cat)}
-                  className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </button>
-
-                {/* Delete */}
-                <button
-                  onClick={() => deleteCategory(cat.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+            {categories.length === 0 && (
+              <div className="text-center py-12 text-gray-400 text-sm">
+                Нема категории. Додади една горе.
               </div>
             )}
           </div>
-        ))}
+        </SortableContext>
+      </DndContext>
 
-        {categories.length === 0 && (
-          <div className="text-center py-12 text-gray-400 text-sm">
-            Нема категории. Додади една горе.
-          </div>
-        )}
-      </div>
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Избриши категорија"
+        message={`Дали сте сигурни? Ова ќе ја избрише категоријата и сите ${getItemCount(deleteTarget)} производи во неа. Ова дејство не може да се врати.`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

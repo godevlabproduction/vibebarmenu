@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useToast } from '../../context/ToastContext'
+import ConfirmModal from './ConfirmModal'
+
+const PAGE_SIZE = 20
 
 export default function MenuItemsTable({ onEdit }) {
   const [items, setItems] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [filterCat, setFilterCat] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortField, setSortField] = useState('sort_order')
+  const [sortDirection, setSortDirection] = useState('asc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const { showToast } = useToast()
 
   const fetchData = async () => {
     setLoading(true)
@@ -20,17 +31,49 @@ export default function MenuItemsTable({ onEdit }) {
 
   useEffect(() => { fetchData() }, [])
 
+  // Reset page and selection on filter/search/sort change
+  useEffect(() => {
+    setCurrentPage(1)
+    setSelectedIds(new Set())
+  }, [filterCat, searchQuery, sortField, sortDirection])
+
   const toggleAvailability = async (item) => {
-    await supabase
+    const { error } = await supabase
       .from('menu_items')
       .update({ available: !item.available })
       .eq('id', item.id)
+    if (error) {
+      showToast('Грешка при промена', 'error')
+    } else {
+      showToast(item.available ? 'Производот е исклучен' : 'Производот е вклучен')
+    }
     fetchData()
   }
 
-  const deleteItem = async (id) => {
-    if (!window.confirm('Избриши го овој производ?')) return
-    await supabase.from('menu_items').delete().eq('id', id)
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    const { error } = await supabase.from('menu_items').delete().eq('id', deleteTarget)
+    if (error) {
+      showToast('Грешка при бришење', 'error')
+    } else {
+      showToast('Производот е избришан')
+    }
+    setDeleteTarget(null)
+    fetchData()
+  }
+
+  const bulkUpdateAvailability = async (available) => {
+    const ids = [...selectedIds]
+    const { error } = await supabase
+      .from('menu_items')
+      .update({ available })
+      .in('id', ids)
+    if (error) {
+      showToast('Грешка при промена', 'error')
+    } else {
+      showToast(`${ids.length} производи ${available ? 'вклучени' : 'исклучени'}`)
+    }
+    setSelectedIds(new Set())
     fetchData()
   }
 
@@ -39,9 +82,84 @@ export default function MenuItemsTable({ onEdit }) {
     return cat ? cat.name_mk : '\u2014'
   }
 
-  const filtered = filterCat
+  // Filter
+  let filtered = filterCat
     ? items.filter((i) => i.category_id === filterCat)
     : items
+
+  // Search
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase()
+    filtered = filtered.filter(
+      (i) =>
+        i.name_mk?.toLowerCase().includes(q) ||
+        i.name_en?.toLowerCase().includes(q)
+    )
+  }
+
+  // Sort
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp = 0
+    switch (sortField) {
+      case 'name':
+        cmp = (a.name_mk || '').localeCompare(b.name_mk || '')
+        break
+      case 'price':
+        cmp = (a.price || 0) - (b.price || 0)
+        break
+      case 'category':
+        cmp = getCategoryName(a.category_id).localeCompare(getCategoryName(b.category_id))
+        break
+      default:
+        cmp = (a.sort_order || 0) - (b.sort_order || 0)
+    }
+    return sortDirection === 'desc' ? -cmp : cmp
+  })
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const paginated = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    const pageIds = paginated.map((i) => i.id)
+    const allSelected = pageIds.every((id) => selectedIds.has(id))
+    if (allSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        pageIds.forEach((id) => next.delete(id))
+        return next
+      })
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        pageIds.forEach((id) => next.add(id))
+        return next
+      })
+    }
+  }
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <span className="text-gray-300 ml-1">↕</span>
+    return <span className="text-gray-700 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+  }
 
   if (loading) {
     return <div className="text-gray-400 py-8 text-center">Се вчитува...</div>
@@ -53,7 +171,7 @@ export default function MenuItemsTable({ onEdit }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-gray-900">Производи</h2>
-          <span className="text-sm text-gray-400">{filtered.length}</span>
+          <span className="text-sm text-gray-400">{sorted.length}</span>
         </div>
         <button
           onClick={() => onEdit(null)}
@@ -61,6 +179,30 @@ export default function MenuItemsTable({ onEdit }) {
         >
           + Додади
         </button>
+      </div>
+
+      {/* Search bar */}
+      <div className="relative mb-3">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Пребарај производи..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-9 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Category filter */}
@@ -92,13 +234,69 @@ export default function MenuItemsTable({ onEdit }) {
         </div>
       )}
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-sm font-medium text-blue-700">{selectedIds.size} избрани</span>
+          <div className="flex gap-2 ml-auto">
+            <button
+              onClick={() => bulkUpdateAvailability(true)}
+              className="px-3 py-1.5 text-xs font-medium bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+            >
+              Вклучи
+            </button>
+            <button
+              onClick={() => bulkUpdateAvailability(false)}
+              className="px-3 py-1.5 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            >
+              Исклучи
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sort headers */}
+      <div className="flex items-center gap-3 px-3 py-2 mb-1 text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+        <div className="w-5 shrink-0">
+          <input
+            type="checkbox"
+            checked={paginated.length > 0 && paginated.every((i) => selectedIds.has(i.id))}
+            onChange={toggleSelectAll}
+            className="rounded border-gray-300"
+          />
+        </div>
+        <div className="w-14 shrink-0" />
+        <button onClick={() => handleSort('name')} className="flex-1 text-left flex items-center hover:text-gray-700">
+          Име <SortIcon field="name" />
+        </button>
+        <button onClick={() => handleSort('category')} className="w-20 text-left flex items-center hover:text-gray-700 shrink-0 hidden sm:flex">
+          Кат. <SortIcon field="category" />
+        </button>
+        <button onClick={() => handleSort('price')} className="w-16 text-right flex items-center justify-end hover:text-gray-700 shrink-0">
+          Цена <SortIcon field="price" />
+        </button>
+        <div className="w-24 shrink-0" />
+      </div>
+
       {/* Product cards */}
       <div className="space-y-2">
-        {filtered.map((item) => (
+        {paginated.map((item) => (
           <div
             key={item.id}
-            className="bg-white rounded-lg border border-gray-200 p-3 flex items-center gap-3"
+            className={`bg-white rounded-lg border p-3 flex items-center gap-3 ${
+              selectedIds.has(item.id) ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'
+            }`}
           >
+            {/* Checkbox */}
+            <div className="shrink-0">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(item.id)}
+                onChange={() => toggleSelect(item.id)}
+                className="rounded border-gray-300"
+              />
+            </div>
+
             {/* Image */}
             {item.image_url ? (
               <img
@@ -124,7 +322,7 @@ export default function MenuItemsTable({ onEdit }) {
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-xs text-gray-400">{getCategoryName(item.category_id)}</span>
-                <span className="text-xs text-gray-300">·</span>
+                <span className="text-xs text-gray-300">&middot;</span>
                 <span className="text-xs font-medium text-gray-700">{item.price} ден.</span>
               </div>
             </div>
@@ -152,7 +350,7 @@ export default function MenuItemsTable({ onEdit }) {
                 </svg>
               </button>
               <button
-                onClick={() => deleteItem(item.id)}
+                onClick={() => setDeleteTarget(item.id)}
                 className="p-2 text-gray-400 hover:text-red-500 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -163,12 +361,44 @@ export default function MenuItemsTable({ onEdit }) {
           </div>
         ))}
 
-        {filtered.length === 0 && (
+        {paginated.length === 0 && (
           <div className="text-center py-12 text-gray-400 text-sm">
-            Нема производи. Кликни "+ Додади" за да креираш.
+            {searchQuery ? 'Нема резултати за пребарувањето.' : 'Нема производи. Кликни "+ Додади" за да креираш.'}
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
+          >
+            ← Претходна
+          </button>
+          <span className="text-xs text-gray-500">
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
+          >
+            Следна →
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        title="Избриши производ"
+        message="Дали сте сигурни дека сакате да го избришете овој производ? Ова дејство не може да се врати."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useToast } from '../../context/ToastContext'
 
 const AVAILABLE_TAGS = ['vegan', 'gluten-free', 'sugar-free', 'non-alcoholic']
 
 export default function MenuItemForm({ item, onClose }) {
   const isEditing = item !== null
+  const { showToast } = useToast()
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [imageFile, setImageFile] = useState(null)
@@ -101,7 +103,7 @@ export default function MenuItemForm({ item, onClose }) {
       }
       onClose()
     } catch (err) {
-      alert('Грешка: ' + err.message)
+      showToast('Грешка: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -222,30 +224,18 @@ export default function MenuItemForm({ item, onClose }) {
           </div>
         </div>
 
-        {/* Price + Sort */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Цена (МКД)</label>
-            <input
-              name="price"
-              type="number"
-              step="1"
-              value={form.price}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Редослед</label>
-            <input
-              name="sort_order"
-              type="number"
-              value={form.sort_order}
-              onChange={handleChange}
-              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+        {/* Price */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Цена (МКД)</label>
+          <input
+            name="price"
+            type="number"
+            step="1"
+            value={form.price}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         {/* Tags */}

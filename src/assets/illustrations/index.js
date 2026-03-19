@@ -1,8 +1,0 @@
-export { default as CocktailIcon } from './cocktail'
-export { default as WineIcon } from './wine'
-export { default as BeerIcon } from './beer'
-export { default as BottleIcon } from './bottle'
-export { default as LeavesIcon } from './leaves'
-export { default as CoffeeIcon } from './coffee'
-export { default as BubbleTeaIcon } from './bubbletea'
-export { default as DrinksIcon } from './drinks'

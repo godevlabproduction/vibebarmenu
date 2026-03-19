@@ -39,7 +39,7 @@ export default function Navbar() {
       {/* Social icons */}
       <div className="flex items-center justify-end gap-4">
         <a
-          href="https://facebook.com"
+          href="https://www.facebook.com/profile.php?id=61575148773577"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white"
@@ -50,7 +50,7 @@ export default function Navbar() {
           </svg>
         </a>
         <a
-          href="https://instagram.com"
+          href="https://www.instagram.com/vibebarofficial/"
           target="_blank"
           rel="noopener noreferrer"
           className="text-white"

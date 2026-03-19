@@ -1,32 +1,58 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useMenu } from '../hooks/useMenu'
 import { useLanguage } from '../context/LanguageContext'
 import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 
 export default function MenuPage() {
   const { categories, loading, error } = useMenu()
   const { t } = useLanguage()
+  const [showSplash, setShowSplash] = useState(true)
+  const [fadeOut, setFadeOut] = useState(false)
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-board flex items-center justify-center">
-        <span className="font-chalk text-3xl text-gold animate-pulse">Loading...</span>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-board flex items-center justify-center">
-        <span className="font-chalk text-2xl text-red-400">
-          {t('Грешка при вчитување на менито', 'Error loading menu')}
-        </span>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (!loading && showSplash) {
+      // Data loaded — start fade out
+      const fadeTimer = setTimeout(() => setFadeOut(true), 1000)
+      const removeTimer = setTimeout(() => setShowSplash(false), 1500)
+      return () => {
+        clearTimeout(fadeTimer)
+        clearTimeout(removeTimer)
+      }
+    }
+  }, [loading, showSplash])
 
   return (
     <div className="min-h-screen bg-black/40 text-chalk px-[10%]">
+      {/* Splash overlay */}
+      {showSplash && (
+        <div
+          className={`fixed inset-0 z-50 backdrop-blur-xl bg-black/60 flex items-center justify-center transition-opacity duration-500 ${
+            fadeOut ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
+          <h1 className="font-chalk text-4xl md:text-5xl text-white tracking-[0.2em] flex">
+            {'VIBE BAR'.split('').map((char, i) => (
+              <span
+                key={i}
+                className="inline-block animate-[splash-letter_0.6s_ease-out_both]"
+                style={{ animationDelay: `${i * 0.08}s` }}
+              >
+                {char === ' ' ? '\u00A0' : char}
+              </span>
+            ))}
+          </h1>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center justify-center min-h-screen">
+          <span className="font-chalk text-2xl text-red-400">
+            {t('Грешка при вчитување на менито', 'Error loading menu')}
+          </span>
+        </div>
+      )}
       <div className="flex flex-col">
         <Navbar />
 
@@ -61,6 +87,8 @@ export default function MenuPage() {
             ))}
           </div>
         </main>
+
+        <Footer />
       </div>
     </div>
   )

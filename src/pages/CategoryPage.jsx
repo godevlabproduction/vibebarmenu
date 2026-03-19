@@ -4,6 +4,7 @@ import { useMenu } from '../hooks/useMenu'
 import { useLanguage } from '../context/LanguageContext'
 import MenuItem from '../components/menu/MenuItem'
 import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
 
 export default function CategoryPage() {
   const { categoryId } = useParams()
@@ -101,6 +102,8 @@ export default function CategoryPage() {
             )}
           </div>
         </div>
+
+        <Footer />
     </div>
   )
 }
