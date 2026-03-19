@@ -38,7 +38,8 @@ export default function CategoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black/40 text-chalk px-[10%]">
+    <div className="min-h-screen bg-black/40 text-chalk">
+      <div className="max-w-2xl mx-auto px-[10%]">
         <Navbar />
 
         {/* Back arrow + grid toggle */}
@@ -104,6 +105,7 @@ export default function CategoryPage() {
         </div>
 
         <Footer />
+      </div>
     </div>
   )
 }

@@ -51,7 +51,8 @@ export default function ProductPage() {
   const description = t(item.description_mk, item.description_en)
 
   return (
-    <div className="min-h-screen bg-black/40 text-chalk px-[10%]">
+    <div className="min-h-screen bg-black/40 text-chalk">
+      <div className="max-w-2xl mx-auto px-[10%]">
       <Navbar />
 
       {/* Back arrow */}
@@ -127,6 +128,7 @@ export default function ProductPage() {
       </div>
 
       <Footer />
+      </div>
     </div>
   )
 }
