@@ -5,6 +5,7 @@ import Dashboard from '../components/admin/Dashboard'
 import MenuItemsTable from '../components/admin/MenuItemsTable'
 import MenuItemForm from '../components/admin/MenuItemForm'
 import CategoriesManager from '../components/admin/CategoriesManager'
+import SubcategoriesManager from '../components/admin/SubcategoriesManager'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -34,6 +35,8 @@ export default function AdminDashboard() {
         return <MenuItemsTable onEdit={setEditingItem} />
       case 'categories':
         return <CategoriesManager />
+      case 'subcategories':
+        return <SubcategoriesManager />
       default:
         return <Dashboard onNavigate={handleNavigate} />
     }

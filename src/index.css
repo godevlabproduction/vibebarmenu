@@ -35,6 +35,15 @@ body {
   opacity: 0.7;
 }
 
+/* Hide scrollbar on subcategory nav */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Toast slide-in animation */
 @keyframes toast-in {
   0% {

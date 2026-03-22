@@ -8,11 +8,13 @@ export default function MenuItemForm({ item, onClose }) {
   const isEditing = item !== null
   const { showToast } = useToast()
   const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [form, setForm] = useState({
     category_id: '',
+    subcategory_id: '',
     name_mk: '',
     name_en: '',
     description_mk: '',
@@ -25,15 +27,18 @@ export default function MenuItemForm({ item, onClose }) {
   })
 
   useEffect(() => {
-    supabase
-      .from('categories')
-      .select('*')
-      .order('sort_order')
-      .then(({ data }) => setCategories(data || []))
+    Promise.all([
+      supabase.from('categories').select('*').order('sort_order'),
+      supabase.from('subcategories').select('*').order('sort_order'),
+    ]).then(([catsRes, subsRes]) => {
+      setCategories(catsRes.data || [])
+      setSubcategories(subsRes.data || [])
+    })
 
     if (isEditing) {
       setForm({
         category_id: item.category_id,
+        subcategory_id: item.subcategory_id || '',
         name_mk: item.name_mk,
         name_en: item.name_en,
         description_mk: item.description_mk || '',
@@ -47,9 +52,21 @@ export default function MenuItemForm({ item, onClose }) {
     }
   }, [item, isEditing])
 
+  // Filter subcategories based on selected category
+  const filteredSubcategories = subcategories.filter(
+    (sc) => sc.category_id === form.category_id
+  )
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
+    setForm((prev) => {
+      const updated = { ...prev, [name]: type === 'checkbox' ? checked : value }
+      // Reset subcategory when category changes
+      if (name === 'category_id') {
+        updated.subcategory_id = ''
+      }
+      return updated
+    })
   }
 
   const handleTagToggle = (tag) => {
@@ -175,6 +192,26 @@ export default function MenuItemForm({ item, onClose }) {
             ))}
           </select>
         </div>
+
+        {/* Subcategory */}
+        {filteredSubcategories.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Подкатегорија</label>
+            <select
+              name="subcategory_id"
+              value={form.subcategory_id}
+              onChange={handleChange}
+              className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Без подкатегорија</option>
+              {filteredSubcategories.map((sc) => (
+                <option key={sc.id} value={sc.id}>
+                  {sc.name_mk} / {sc.name_en}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Names */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
