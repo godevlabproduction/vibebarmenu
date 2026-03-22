@@ -180,10 +180,10 @@ export default function CategoryPage() {
                   key={group.subcategory.id}
                   data-sub-id={group.subcategory.id}
                   onClick={() => scrollToSection(group.subcategory.id)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-chalk tracking-wide whitespace-nowrap transition-all duration-200 ${
+                  className={`px-4 py-1.5 rounded-full text-lg font-chalk tracking-wide whitespace-nowrap transition-all duration-200 ${
                     activeSubcategory === group.subcategory.id
-                      ? 'text-gold border border-chalk-muted/40'
-                      : 'text-chalk-muted border border-chalk-muted/20 hover:text-gold/70 hover:border-chalk-muted/30'
+                      ? 'text-gold border border-gold/50'
+                      : 'text-chalk border border-chalk/30 hover:text-gold hover:border-gold/40'
                   }`}
                 >
                   {t(group.subcategory.name_mk, group.subcategory.name_en)}
