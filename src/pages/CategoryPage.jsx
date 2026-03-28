@@ -12,6 +12,7 @@ export default function CategoryPage() {
   const { language, toggleLanguage, t } = useLanguage()
   const [layoutOverride, setLayoutOverride] = useState(null)
   const [activeSubcategory, setActiveSubcategory] = useState(null)
+  const [showScrollTop, setShowScrollTop] = useState(false)
   const sectionRefs = useRef({})
   const navRef = useRef(null)
   const isScrollingToRef = useRef(false)
@@ -38,15 +39,14 @@ export default function CategoryPage() {
 
   const hasSubcategories = groupedItems.length > 0
 
-  // Track active section on scroll
+  // Track active section on scroll + show/hide scroll-to-top button
   useEffect(() => {
-    if (!hasSubcategories) return
-
     const handleScroll = () => {
-      if (isScrollingToRef.current) return
+      setShowScrollTop(window.scrollY > 300)
 
-      const navHeight = navRef.current?.offsetHeight || 0
-      const offset = navHeight + 120 // account for sticky nav + some padding
+      if (!hasSubcategories || isScrollingToRef.current) return
+
+      const offset = 200
 
       let currentActive = null
       for (const group of groupedItems) {
@@ -116,20 +116,25 @@ export default function CategoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black/40 text-chalk">
+    <div className="min-h-screen text-chalk bg-black/40">
       <div className="max-w-2xl mx-auto px-[10%]">
         <Navbar />
 
-        {/* Back arrow + grid toggle */}
-        <div className="flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/40 text-white">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
+        {/* Back arrow + title + grid toggle */}
+        <div className="grid grid-cols-3 items-center mt-2">
+          <div className="justify-self-start">
+            <Link to="/" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/40 text-white">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+          </div>
 
-          <div className="flex gap-2">
-            {/* 2-column grid */}
+          <h1 style={{ color: '#FFFFFF' }} className="font-chalk text-4xl md:text-5xl text-center tracking-wide">
+            {t(category.name_mk, category.name_en)}
+          </h1>
+
+          <div className="flex gap-2 justify-self-end">
             <button
               onClick={() => setLayoutOverride('grid-2')}
               className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
@@ -145,7 +150,6 @@ export default function CategoryPage() {
                 <rect x="9" y="9" width="7" height="7" rx="1" />
               </svg>
             </button>
-            {/* 1-column grid */}
             <button
               onClick={() => setLayoutOverride('grid-1')}
               className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
@@ -162,34 +166,26 @@ export default function CategoryPage() {
           </div>
         </div>
 
-        {/* Category heading */}
-        <h1 className="font-chalk text-5xl md:text-6xl text-gold text-center mt-4 mb-2 tracking-wide">
-          {t(category.name_mk, category.name_en)}
-        </h1>
-        <div className="w-16 h-px bg-chalk-muted mx-auto mb-4 opacity-50" />
+        <div className="w-16 h-px bg-chalk-muted mx-auto my-3 opacity-50" />
 
-        {/* Subcategory navigation pills */}
+        {/* Subcategory navigation chips */}
         {hasSubcategories && (
-          <div
-            ref={navRef}
-            className="sticky top-0 z-20 -mx-[10%] px-[10%] py-3 mb-4"
-          >
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-              {groupedItems.map((group) => (
-                <button
-                  key={group.subcategory.id}
-                  data-sub-id={group.subcategory.id}
-                  onClick={() => scrollToSection(group.subcategory.id)}
-                  className={`px-4 py-1.5 rounded-full text-lg font-chalk tracking-wide whitespace-nowrap transition-all duration-200 ${
-                    activeSubcategory === group.subcategory.id
-                      ? 'text-gold border border-gold/50'
-                      : 'text-chalk border border-chalk/30 hover:text-gold hover:border-gold/40'
-                  }`}
-                >
-                  {t(group.subcategory.name_mk, group.subcategory.name_en)}
-                </button>
-              ))}
-            </div>
+          <div ref={navRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 mb-4 justify-center flex-wrap">
+            {groupedItems.map((group) => (
+              <button
+                key={group.subcategory.id}
+                data-sub-id={group.subcategory.id}
+                onClick={() => scrollToSection(group.subcategory.id)}
+                style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.4)' }}
+                className={`px-3 py-1 rounded-full text-lg font-chalk tracking-wide whitespace-nowrap transition-all duration-200 border ${
+                  activeSubcategory === group.subcategory.id
+                    ? 'underline underline-offset-4'
+                    : ''
+                }`}
+              >
+                {t(group.subcategory.name_mk, group.subcategory.name_en)}
+              </button>
+            ))}
           </div>
         )}
 
@@ -256,6 +252,18 @@ export default function CategoryPage() {
 
         <Footer />
       </div>
+
+      {/* Scroll to top button */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-30 w-10 h-10 rounded-full border border-white/40 text-white flex items-center justify-center bg-board/80 backdrop-blur-sm transition-opacity"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+      )}
     </div>
   )
 }

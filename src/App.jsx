@@ -7,6 +7,9 @@ import CategoryPage from './pages/CategoryPage'
 import ProductPage from './pages/ProductPage'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
+import NotFoundPage from './pages/NotFoundPage'
+
+const isAdminSubdomain = window.location.hostname === 'admin.vibebar.mk'
 
 export default function App() {
   return (
@@ -14,18 +17,29 @@ export default function App() {
       <AuthProvider>
         <LanguageProvider>
           <Routes>
-            <Route path="/" element={<MenuPage />} />
-            <Route path="/menu/:categoryId" element={<CategoryPage />} />
-            <Route path="/menu/:categoryId/:itemId" element={<ProductPage />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
+            {isAdminSubdomain ? (
+              <>
+                <Route path="/" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/login" element={<AdminLogin />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </>
+            ) : (
+              <>
+                <Route path="/" element={<MenuPage />} />
+                <Route path="/menu/:categoryId" element={<CategoryPage />} />
+                <Route path="/menu/:categoryId/:itemId" element={<ProductPage />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<NotFoundPage />} />
+              </>
+            )}
           </Routes>
         </LanguageProvider>
       </AuthProvider>
