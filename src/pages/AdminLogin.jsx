@@ -20,7 +20,8 @@ export default function AdminLogin() {
       setError(error.message)
       setLoading(false)
     } else {
-      navigate('/admin')
+      const isAdminSubdomain = window.location.hostname === 'admin.vibebar.mk'
+      navigate(isAdminSubdomain ? '/' : '/admin')
     }
   }
 
