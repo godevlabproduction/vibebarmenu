@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function AdminLogin() {
@@ -7,8 +7,14 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, session } = useAuth()
   const navigate = useNavigate()
+
+  const isAdminSubdomain = window.location.hostname === 'admin.vibebar.mk'
+  const dashboardPath = isAdminSubdomain ? '/' : '/admin'
+
+  // Already logged in — go straight to the dashboard
+  if (session) return <Navigate to={dashboardPath} replace />
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -20,8 +26,7 @@ export default function AdminLogin() {
       setError(error.message)
       setLoading(false)
     } else {
-      const isAdminSubdomain = window.location.hostname === 'admin.vibebar.mk'
-      navigate(isAdminSubdomain ? '/' : '/admin')
+      navigate(dashboardPath)
     }
   }
 
@@ -34,7 +39,7 @@ export default function AdminLogin() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Емаил
+              Е-пошта
             </label>
             <input
               id="email"

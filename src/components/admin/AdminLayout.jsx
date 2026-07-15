@@ -4,7 +4,7 @@ const TABS = [
   { id: 'dashboard', label: 'Преглед' },
   { id: 'items', label: 'Производи' },
   { id: 'categories', label: 'Категории' },
-  { id: 'subcategories', label: 'Подкатегории' },
+  { id: 'subcategories', label: 'Поткатегории' },
 ]
 
 export default function AdminLayout({ activeTab, onTabChange, children }) {

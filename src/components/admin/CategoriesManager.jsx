@@ -3,10 +3,11 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../../lib/supabase'
+import { removeStorageFile } from '../../lib/storage'
 import { useToast } from '../../context/ToastContext'
 import ConfirmModal from './ConfirmModal'
 
-function SortableCategoryItem({ cat, isEditing, editMk, editEn, editImagePreview, editImageUrl, uploading, onEditMk, onEditEn, onEditImageChange, onSaveEdit, onCancelEdit, onStartEdit, onToggleLayout, onDelete }) {
+function SortableCategoryItem({ cat, isEditing, editMk, editEn, editImagePreview, editImageUrl, uploading, onEditMk, onEditEn, onEditImageChange, onClearImage, onSaveEdit, onCancelEdit, onStartEdit, onToggleLayout, onDelete }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id })
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -37,6 +38,19 @@ function SortableCategoryItem({ cat, isEditing, editMk, editEn, editImagePreview
                 <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
                   <span className="text-white text-xs font-medium opacity-0 hover:opacity-100">Промени</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onClearImage()
+                  }}
+                  className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             ) : (
               <div className="w-full h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center gap-2 hover:border-gray-400 transition-colors">
@@ -121,12 +135,12 @@ export default function CategoriesManager() {
   const [editImageFile, setEditImageFile] = useState(null)
   const [editImagePreview, setEditImagePreview] = useState(null)
   const [editImageUrl, setEditImageUrl] = useState('')
-  const [uploading, setUploading] = useState(false)
+  const [savingNew, setSavingNew] = useState(false)
+  const [savingEdit, setSavingEdit] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const { showToast } = useToast()
 
   const fetchCategories = async () => {
-    setLoading(true)
     const [catsRes, itemsRes] = await Promise.all([
       supabase.from('categories').select('*').order('sort_order'),
       supabase.from('menu_items').select('id, category_id'),
@@ -152,12 +166,25 @@ export default function CategoriesManager() {
     return data.publicUrl
   }
 
+  // Revoke object URLs when previews change or on unmount
+  useEffect(() => {
+    return () => {
+      if (newImagePreview) URL.revokeObjectURL(newImagePreview)
+    }
+  }, [newImagePreview])
+  useEffect(() => {
+    return () => {
+      if (editImagePreview) URL.revokeObjectURL(editImagePreview)
+    }
+  }, [editImagePreview])
+
   const handleNewImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
       setNewImageFile(file)
       setNewImagePreview(URL.createObjectURL(file))
     }
+    e.target.value = ''
   }
 
   const handleEditImageChange = (e) => {
@@ -166,21 +193,34 @@ export default function CategoriesManager() {
       setEditImageFile(file)
       setEditImagePreview(URL.createObjectURL(file))
     }
+    e.target.value = ''
+  }
+
+  const clearNewImage = () => {
+    setNewImageFile(null)
+    setNewImagePreview(null)
+  }
+
+  const clearEditImage = () => {
+    setEditImageFile(null)
+    setEditImagePreview(null)
+    setEditImageUrl('')
   }
 
   const addCategory = async (e) => {
     e.preventDefault()
     if (!newNameMk.trim() || !newNameEn.trim()) return
-    setUploading(true)
+    setSavingNew(true)
     try {
       const image_url = await uploadImage(newImageFile)
-      const maxOrder = Math.max(0, ...categories.map((c) => c.sort_order))
-      await supabase.from('categories').insert({
+      const maxOrder = Math.max(0, ...categories.map((c) => c.sort_order || 0))
+      const { error } = await supabase.from('categories').insert({
         name_mk: newNameMk.trim(),
         name_en: newNameEn.trim(),
         image_url,
         sort_order: maxOrder + 1,
       })
+      if (error) throw error
       setNewNameMk('')
       setNewNameEn('')
       setNewImageFile(null)
@@ -190,7 +230,7 @@ export default function CategoriesManager() {
     } catch (err) {
       showToast('Грешка: ' + err.message, 'error')
     } finally {
-      setUploading(false)
+      setSavingNew(false)
     }
   }
 
@@ -204,15 +244,21 @@ export default function CategoriesManager() {
   }
 
   const saveEdit = async (id) => {
-    setUploading(true)
+    setSavingEdit(true)
     try {
       const image_url = editImageFile
         ? await uploadImage(editImageFile)
         : editImageUrl || null
-      await supabase
+      const { error } = await supabase
         .from('categories')
         .update({ name_mk: editMk, name_en: editEn, image_url })
         .eq('id', id)
+      if (error) throw error
+      // Clean up the old file if the image was replaced or removed
+      const original = categories.find((c) => c.id === id)
+      if (original?.image_url && original.image_url !== image_url) {
+        removeStorageFile(original.image_url)
+      }
       setEditingId(null)
       setEditImageFile(null)
       setEditImagePreview(null)
@@ -221,26 +267,38 @@ export default function CategoriesManager() {
     } catch (err) {
       showToast('Грешка: ' + err.message, 'error')
     } finally {
-      setUploading(false)
+      setSavingEdit(false)
     }
   }
 
   const toggleLayout = async (cat) => {
     const newLayout = cat.layout === 'grid-1' ? 'grid-2' : 'grid-1'
-    await supabase
+    const { error } = await supabase
       .from('categories')
       .update({ layout: newLayout })
       .eq('id', cat.id)
+    if (error) {
+      showToast('Грешка при промена', 'error')
+    }
     fetchCategories()
   }
 
   const confirmDelete = async () => {
     if (!deleteTarget) return
-    const { error } = await supabase.from('categories').delete().eq('id', deleteTarget)
-    if (error) {
-      showToast('Грешка при бришење', 'error')
-    } else {
+    const target = categories.find((c) => c.id === deleteTarget)
+    try {
+      // Delete items and subcategories explicitly so this works
+      // regardless of whether the DB has ON DELETE CASCADE
+      let res = await supabase.from('menu_items').delete().eq('category_id', deleteTarget)
+      if (res.error) throw res.error
+      res = await supabase.from('subcategories').delete().eq('category_id', deleteTarget)
+      if (res.error) throw res.error
+      res = await supabase.from('categories').delete().eq('id', deleteTarget)
+      if (res.error) throw res.error
+      if (target?.image_url) removeStorageFile(target.image_url)
       showToast('Категоријата е избришана')
+    } catch {
+      showToast('Грешка при бришење', 'error')
     }
     setDeleteTarget(null)
     fetchCategories()
@@ -308,6 +366,19 @@ export default function CategoriesManager() {
               <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
                 <span className="text-white text-xs font-medium opacity-0 hover:opacity-100">Промени</span>
               </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  clearNewImage()
+                }}
+                className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           ) : (
             <div className="w-full h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center gap-2 hover:border-gray-400 transition-colors">
@@ -326,10 +397,10 @@ export default function CategoriesManager() {
         </label>
         <button
           type="submit"
-          disabled={uploading}
+          disabled={savingNew}
           className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
         >
-          {uploading ? 'Се качува...' : '+ Додади категорија'}
+          {savingNew ? 'Се качува...' : '+ Додади категорија'}
         </button>
       </form>
 
@@ -346,10 +417,11 @@ export default function CategoriesManager() {
                 editEn={editEn}
                 editImagePreview={editImagePreview}
                 editImageUrl={editImageUrl}
-                uploading={uploading}
+                uploading={savingEdit}
                 onEditMk={setEditMk}
                 onEditEn={setEditEn}
                 onEditImageChange={handleEditImageChange}
+                onClearImage={clearEditImage}
                 onSaveEdit={saveEdit}
                 onCancelEdit={() => setEditingId(null)}
                 onStartEdit={startEdit}

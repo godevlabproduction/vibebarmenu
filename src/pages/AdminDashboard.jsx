@@ -13,9 +13,8 @@ export default function AdminDashboard() {
 
   const handleNavigate = (tab, options) => {
     setActiveTab(tab)
-    if (tab === 'items' && options?.create) {
-      setEditingItem(null)
-    }
+    // null opens the create form; undefined closes any open form
+    setEditingItem(tab === 'items' && options?.create ? null : undefined)
   }
 
   const renderContent = () => {
@@ -44,7 +43,7 @@ export default function AdminDashboard() {
 
   return (
     <ToastProvider>
-      <AdminLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      <AdminLayout activeTab={activeTab} onTabChange={handleNavigate}>
         {renderContent()}
       </AdminLayout>
     </ToastProvider>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { removeStorageFile } from '../../lib/storage'
 import { useToast } from '../../context/ToastContext'
 
 const AVAILABLE_TAGS = ['vegan', 'gluten-free', 'sugar-free', 'non-alcoholic']
@@ -78,12 +79,26 @@ export default function MenuItemForm({ item, onClose }) {
     }))
   }
 
+  // Revoke the previous object URL whenever the preview changes or on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
+    }
+  }, [imagePreview])
+
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
       setImageFile(file)
       setImagePreview(URL.createObjectURL(file))
     }
+    e.target.value = ''
+  }
+
+  const clearImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    setForm((prev) => ({ ...prev, image_url: '' }))
   }
 
   const uploadImage = async () => {
@@ -108,16 +123,22 @@ export default function MenuItemForm({ item, onClose }) {
       const image_url = await uploadImage()
       const payload = {
         ...form,
+        subcategory_id: form.subcategory_id || null,
         price: parseFloat(form.price),
         sort_order: parseInt(form.sort_order) || 0,
-        image_url,
+        image_url: image_url || null,
       }
 
-      if (isEditing) {
-        await supabase.from('menu_items').update(payload).eq('id', item.id)
-      } else {
-        await supabase.from('menu_items').insert(payload)
+      const { error } = isEditing
+        ? await supabase.from('menu_items').update(payload).eq('id', item.id)
+        : await supabase.from('menu_items').insert(payload)
+      if (error) throw error
+
+      // Clean up the old file if the image was replaced or removed
+      if (item?.image_url && item.image_url !== image_url) {
+        removeStorageFile(item.image_url)
       }
+      showToast(isEditing ? 'Производот е зачуван' : 'Производот е додаден')
       onClose()
     } catch (err) {
       showToast('Грешка: ' + err.message, 'error')
@@ -156,6 +177,19 @@ export default function MenuItemForm({ item, onClose }) {
                 <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
                   <span className="text-white text-sm font-medium opacity-0 hover:opacity-100">Промени</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    clearImage()
+                  }}
+                  className="absolute top-2 right-2 w-7 h-7 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
             ) : (
               <div className="w-full aspect-[3/2] rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-2 hover:border-gray-400 transition-colors">
@@ -196,14 +230,14 @@ export default function MenuItemForm({ item, onClose }) {
         {/* Subcategory */}
         {filteredSubcategories.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Подкатегорија</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Поткатегорија</label>
             <select
               name="subcategory_id"
               value={form.subcategory_id}
               onChange={handleChange}
               className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Без подкатегорија</option>
+              <option value="">Без поткатегорија</option>
               {filteredSubcategories.map((sc) => (
                 <option key={sc.id} value={sc.id}>
                   {sc.name_mk} / {sc.name_en}

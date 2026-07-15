@@ -1,4 +1,15 @@
+import { useEffect } from 'react'
+
 export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel }) {
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onCancel()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onCancel])
+
   if (!isOpen) return null
 
   return (

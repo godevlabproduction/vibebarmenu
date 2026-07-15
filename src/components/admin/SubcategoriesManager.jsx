@@ -17,7 +17,6 @@ export default function SubcategoriesManager() {
   const { showToast } = useToast()
 
   const fetchData = async () => {
-    setLoading(true)
     const [catsRes, subsRes] = await Promise.all([
       supabase.from('categories').select('*').order('sort_order'),
       supabase.from('subcategories').select('*').order('sort_order'),
@@ -39,7 +38,7 @@ export default function SubcategoriesManager() {
   const addSubcategory = async (e) => {
     e.preventDefault()
     if (!newNameMk.trim() || !newNameEn.trim() || !selectedCategory) return
-    const maxOrder = Math.max(0, ...filteredSubs.map((s) => s.sort_order))
+    const maxOrder = Math.max(0, ...filteredSubs.map((s) => s.sort_order || 0))
     const { error } = await supabase.from('subcategories').insert({
       category_id: selectedCategory,
       name_mk: newNameMk.trim(),
@@ -51,7 +50,7 @@ export default function SubcategoriesManager() {
     } else {
       setNewNameMk('')
       setNewNameEn('')
-      showToast('Подкатегоријата е додадена')
+      showToast('Поткатегоријата е додадена')
       fetchData()
     }
   }
@@ -71,7 +70,7 @@ export default function SubcategoriesManager() {
       showToast('Грешка: ' + error.message, 'error')
     } else {
       setEditingId(null)
-      showToast('Подкатегоријата е зачувана')
+      showToast('Поткатегоријата е зачувана')
       fetchData()
     }
   }
@@ -82,7 +81,7 @@ export default function SubcategoriesManager() {
     if (error) {
       showToast('Грешка при бришење', 'error')
     } else {
-      showToast('Подкатегоријата е избришана')
+      showToast('Поткатегоријата е избришана')
     }
     setDeleteTarget(null)
     fetchData()
@@ -94,10 +93,13 @@ export default function SubcategoriesManager() {
     if (swapIdx < 0 || swapIdx >= filteredSubs.length) return
 
     const other = filteredSubs[swapIdx]
-    await Promise.all([
+    const results = await Promise.all([
       supabase.from('subcategories').update({ sort_order: other.sort_order }).eq('id', sub.id),
       supabase.from('subcategories').update({ sort_order: sub.sort_order }).eq('id', other.id),
     ])
+    if (results.some((r) => r.error)) {
+      showToast('Грешка при преместување', 'error')
+    }
     fetchData()
   }
 
@@ -105,7 +107,7 @@ export default function SubcategoriesManager() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Подкатегории</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Поткатегории</h2>
 
       {/* Category selector */}
       <div className="mb-4">
@@ -143,7 +145,7 @@ export default function SubcategoriesManager() {
           type="submit"
           className="w-full sm:w-auto px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
         >
-          + Додади подкатегорија
+          + Додади поткатегорија
         </button>
       </form>
 
@@ -224,7 +226,7 @@ export default function SubcategoriesManager() {
 
         {filteredSubs.length === 0 && (
           <div className="text-center py-8 text-gray-400 text-sm">
-            Нема подкатегории за оваа категорија.
+            Нема поткатегории за оваа категорија.
           </div>
         )}
       </div>
@@ -232,8 +234,8 @@ export default function SubcategoriesManager() {
       {/* Delete confirmation modal */}
       <ConfirmModal
         isOpen={deleteTarget !== null}
-        title="Избриши подкатегорија"
-        message="Дали сте сигурни дека сакате да ја избришете оваа подкатегорија? Производите нема да бидат избришани, но ќе останат без подкатегорија."
+        title="Избриши поткатегорија"
+        message="Дали сте сигурни дека сакате да ја избришете оваа поткатегорија? Производите нема да бидат избришани, но ќе останат без поткатегорија."
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />

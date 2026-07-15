@@ -5,6 +5,11 @@ import ConfirmModal from './ConfirmModal'
 
 const PAGE_SIZE = 20
 
+function SortIcon({ field, sortField, sortDirection }) {
+  if (sortField !== field) return <span className="text-gray-300 ml-1">↕</span>
+  return <span className="text-gray-700 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+}
+
 export default function MenuItemsTable({ onEdit }) {
   const [items, setItems] = useState([])
   const [categories, setCategories] = useState([])
@@ -19,7 +24,6 @@ export default function MenuItemsTable({ onEdit }) {
   const { showToast } = useToast()
 
   const fetchData = async () => {
-    setLoading(true)
     const [itemsRes, catsRes] = await Promise.all([
       supabase.from('menu_items').select('*').order('sort_order'),
       supabase.from('categories').select('*').order('sort_order'),
@@ -31,11 +35,11 @@ export default function MenuItemsTable({ onEdit }) {
 
   useEffect(() => { fetchData() }, [])
 
-  // Reset page and selection on filter/search/sort change
-  useEffect(() => {
+  // Called whenever filter/search/sort changes so stale pages/selections don't linger
+  const resetPageAndSelection = () => {
     setCurrentPage(1)
     setSelectedIds(new Set())
-  }, [filterCat, searchQuery, sortField, sortDirection])
+  }
 
   const toggleAvailability = async (item) => {
     const { error } = await supabase
@@ -116,9 +120,10 @@ export default function MenuItemsTable({ onEdit }) {
     return sortDirection === 'desc' ? -cmp : cmp
   })
 
-  // Pagination
+  // Pagination (clamped so deleting the last item of the last page can't strand us)
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const paginated = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const page = Math.min(currentPage, totalPages)
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -127,6 +132,7 @@ export default function MenuItemsTable({ onEdit }) {
       setSortField(field)
       setSortDirection('asc')
     }
+    resetPageAndSelection()
   }
 
   const toggleSelect = (id) => {
@@ -154,11 +160,6 @@ export default function MenuItemsTable({ onEdit }) {
         return next
       })
     }
-  }
-
-  const SortIcon = ({ field }) => {
-    if (sortField !== field) return <span className="text-gray-300 ml-1">↕</span>
-    return <span className="text-gray-700 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
   }
 
   if (loading) {
@@ -190,12 +191,18 @@ export default function MenuItemsTable({ onEdit }) {
           type="text"
           placeholder="Пребарај производи..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value)
+            resetPageAndSelection()
+          }}
           className="w-full pl-10 pr-9 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         {searchQuery && (
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => {
+              setSearchQuery('')
+              resetPageAndSelection()
+            }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -209,7 +216,10 @@ export default function MenuItemsTable({ onEdit }) {
       {categories.length > 1 && (
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
           <button
-            onClick={() => setFilterCat('')}
+            onClick={() => {
+              setFilterCat('')
+              resetPageAndSelection()
+            }}
             className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
               !filterCat
                 ? 'bg-gray-900 text-white'
@@ -221,7 +231,10 @@ export default function MenuItemsTable({ onEdit }) {
           {categories.map((c) => (
             <button
               key={c.id}
-              onClick={() => setFilterCat(c.id)}
+              onClick={() => {
+                setFilterCat(c.id)
+                resetPageAndSelection()
+              }}
               className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
                 filterCat === c.id
                   ? 'bg-gray-900 text-white'
@@ -267,15 +280,15 @@ export default function MenuItemsTable({ onEdit }) {
         </div>
         <div className="w-14 shrink-0" />
         <button onClick={() => handleSort('name')} className="flex-1 text-left flex items-center hover:text-gray-700">
-          Име <SortIcon field="name" />
+          Име <SortIcon field="name" sortField={sortField} sortDirection={sortDirection} />
         </button>
-        <button onClick={() => handleSort('category')} className="w-20 text-left flex items-center hover:text-gray-700 shrink-0 hidden sm:flex">
-          Кат. <SortIcon field="category" />
+        <button onClick={() => handleSort('category')} className="hidden sm:flex w-20 text-left items-center hover:text-gray-700 shrink-0">
+          Кат. <SortIcon field="category" sortField={sortField} sortDirection={sortDirection} />
         </button>
         <button onClick={() => handleSort('price')} className="w-16 text-right flex items-center justify-end hover:text-gray-700 shrink-0">
-          Цена <SortIcon field="price" />
+          Цена <SortIcon field="price" sortField={sortField} sortDirection={sortDirection} />
         </button>
-        <div className="w-24 shrink-0" />
+        <div className="w-28 shrink-0" />
       </div>
 
       {/* Product cards */}
@@ -288,7 +301,7 @@ export default function MenuItemsTable({ onEdit }) {
             }`}
           >
             {/* Checkbox */}
-            <div className="shrink-0">
+            <div className="w-5 shrink-0">
               <input
                 type="checkbox"
                 checked={selectedIds.has(item.id)}
@@ -320,15 +333,23 @@ export default function MenuItemsTable({ onEdit }) {
                   <span className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-medium">ИСКЛУЧЕН</span>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5 sm:hidden">
                 <span className="text-xs text-gray-400">{getCategoryName(item.category_id)}</span>
                 <span className="text-xs text-gray-300">&middot;</span>
                 <span className="text-xs font-medium text-gray-700">{item.price} ден.</span>
               </div>
             </div>
 
+            {/* Category / price columns (aligned with sort headers on desktop) */}
+            <span className="hidden sm:block w-20 shrink-0 text-xs text-gray-500 truncate">
+              {getCategoryName(item.category_id)}
+            </span>
+            <span className="hidden sm:block w-16 shrink-0 text-right text-sm font-medium text-gray-700">
+              {item.price}
+            </span>
+
             {/* Actions */}
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-1 w-28 justify-end shrink-0">
               <button
                 onClick={() => toggleAvailability(item)}
                 className={`w-9 h-5 rounded-full relative transition-colors ${
@@ -372,18 +393,18 @@ export default function MenuItemsTable({ onEdit }) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
           <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(Math.max(1, page - 1))}
+            disabled={page === 1}
             className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
           >
             ← Претходна
           </button>
           <span className="text-xs text-gray-500">
-            {currentPage} / {totalPages}
+            {page} / {totalPages}
           </span>
           <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(Math.min(totalPages, page + 1))}
+            disabled={page === totalPages}
             className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white transition-colors"
           >
             Следна →
