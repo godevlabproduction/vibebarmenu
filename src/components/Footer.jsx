@@ -30,7 +30,7 @@ export default function Footer() {
         <span>
           Made by{' '}
           <a
-            href="https://godevlab.com"
+            href="https://godevlabagency.com"
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-white transition-colors"
