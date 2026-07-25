@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { LanguageProvider } from './context/LanguageContext'
 import { AuthProvider } from './context/AuthContext'
+import ErrorBoundary from './components/ErrorBoundary'
 import ProtectedRoute from './components/ProtectedRoute'
 import MenuPage from './pages/MenuPage'
 import CategoryPage from './pages/CategoryPage'
@@ -13,7 +14,8 @@ const isAdminSubdomain = window.location.hostname === 'admin.vibebar.mk'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
       <AuthProvider>
         <LanguageProvider>
           <Routes>
@@ -43,6 +45,7 @@ export default function App() {
           </Routes>
         </LanguageProvider>
       </AuthProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }

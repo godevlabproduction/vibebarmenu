@@ -129,6 +129,17 @@ export default function MenuItemForm({ item, onClose }) {
         image_url: image_url || null,
       }
 
+      // New items go to the end of their category instead of all piling at 0.
+      if (!isEditing) {
+        const { data: last } = await supabase
+          .from('menu_items')
+          .select('sort_order')
+          .eq('category_id', payload.category_id)
+          .order('sort_order', { ascending: false })
+          .limit(1)
+        payload.sort_order = (last?.[0]?.sort_order || 0) + 1
+      }
+
       const { error } = isEditing
         ? await supabase.from('menu_items').update(payload).eq('id', item.id)
         : await supabase.from('menu_items').insert(payload)
@@ -155,7 +166,8 @@ export default function MenuItemForm({ item, onClose }) {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={onClose}
-          className="p-1 text-gray-400 hover:text-gray-700 transition-colors"
+          aria-label="Назад"
+          className="w-11 h-11 flex items-center justify-center -ml-2 text-gray-400 hover:text-gray-700 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -210,7 +222,7 @@ export default function MenuItemForm({ item, onClose }) {
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Категорија</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Категорија <span className="text-red-500">*</span></label>
           <select
             name="category_id"
             value={form.category_id}
@@ -250,7 +262,7 @@ export default function MenuItemForm({ item, onClose }) {
         {/* Names */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Име (МК)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Име (МК) <span className="text-red-500">*</span></label>
             <input
               name="name_mk"
               value={form.name_mk}
@@ -260,7 +272,7 @@ export default function MenuItemForm({ item, onClose }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Име (EN)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Име (EN) <span className="text-red-500">*</span></label>
             <input
               name="name_en"
               value={form.name_en}
@@ -297,15 +309,17 @@ export default function MenuItemForm({ item, onClose }) {
 
         {/* Price */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Цена (МКД)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Цена (МКД) <span className="text-red-500">*</span></label>
           <input
             name="price"
             type="number"
+            inputMode="numeric"
             step="1"
+            min="0"
             value={form.price}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -331,21 +345,25 @@ export default function MenuItemForm({ item, onClose }) {
         </div>
 
         {/* Available */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div
-            className={`w-10 h-6 rounded-full relative transition-colors ${
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.available}
+            aria-label="Достапен на мени"
+            onClick={() => setForm((prev) => ({ ...prev, available: !prev.available }))}
+            className={`w-10 h-6 rounded-full relative transition-colors shrink-0 ${
               form.available ? 'bg-green-500' : 'bg-gray-300'
             }`}
-            onClick={() => setForm((prev) => ({ ...prev, available: !prev.available }))}
           >
             <span
               className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${
                 form.available ? 'left-5' : 'left-1'
               }`}
             />
-          </div>
+          </button>
           <span className="text-sm text-gray-700">Достапен на мени</span>
-        </label>
+        </div>
 
         {/* Submit */}
         <button

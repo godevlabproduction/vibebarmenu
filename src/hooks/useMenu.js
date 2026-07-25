@@ -49,7 +49,11 @@ const MOCK_ITEMS = [
   { id: '13', category_id: '7', subcategory_id: 's12', name_mk: 'Негрони', name_en: 'Negroni', description_mk: 'Џин, кампари, вермут', description_en: 'Gin, Campari, sweet vermouth', price: 400, image_url: 'https://picsum.photos/seed/negroni/200/200', tags: [], available: true, sort_order: 3 },
 ]
 
-const useMock = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'your-supabase-url'
+// Only fall back to mock data during local development. In a production build
+// a missing/placeholder URL must surface as a real error, never fake menu data.
+const useMock =
+  import.meta.env.DEV &&
+  (!import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'your-supabase-url')
 
 export function useMenu() {
   const [categories, setCategories] = useState([])
@@ -81,7 +85,10 @@ export function useMenu() {
       } else {
         setCategories(categoriesRes.data)
         setSubcategories(subcategoriesRes.data)
-        setItems(itemsRes.data.filter(item => item.available))
+        // Return all items; consumers decide whether to hide unavailable ones.
+        // (The product page must still resolve an unavailable item to show its
+        // "currently unavailable" state instead of a "not found" page.)
+        setItems(itemsRes.data)
       }
 
       setLoading(false)

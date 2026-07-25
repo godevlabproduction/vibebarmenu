@@ -5,15 +5,21 @@ import { useLanguage } from '../context/LanguageContext'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
+// Show the splash only once per page load. Navigating back to the menu (e.g.
+// tapping the back arrow) remounts this component but must NOT replay it.
+// Resets on a full page reload, which is the intended "first visit" moment.
+let splashShown = false
+
 export default function MenuPage() {
   const { categories, loading, error } = useMenu()
   const { t } = useLanguage()
-  const [showSplash, setShowSplash] = useState(true)
+  const [showSplash, setShowSplash] = useState(!splashShown)
   const [fadeOut, setFadeOut] = useState(false)
 
   useEffect(() => {
     if (!loading && showSplash) {
-      // Data loaded — start fade out
+      // Data loaded — start fade out, and mark it as shown for this page load
+      splashShown = true
       const fadeTimer = setTimeout(() => setFadeOut(true), 1000)
       const removeTimer = setTimeout(() => setShowSplash(false), 1500)
       return () => {
@@ -22,6 +28,16 @@ export default function MenuPage() {
       }
     }
   }, [loading, showSplash])
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black/40 text-chalk flex items-center justify-center px-6 text-center">
+        <span className="font-chalk text-2xl text-red-400">
+          {t('Грешка при вчитување на менито', 'Error loading menu')}
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-black/40 text-chalk">
@@ -47,13 +63,6 @@ export default function MenuPage() {
         </div>
       )}
 
-      {error && (
-        <div className="flex items-center justify-center min-h-screen">
-          <span className="font-chalk text-2xl text-red-400">
-            {t('Грешка при вчитување на менито', 'Error loading menu')}
-          </span>
-        </div>
-      )}
       <div className="flex flex-col">
         <Navbar />
 
@@ -77,6 +86,7 @@ export default function MenuPage() {
                     <img
                       src={cat.image_url}
                       alt={t(cat.name_mk, cat.name_en)}
+                      loading="lazy"
                       className="w-20 h-20 md:w-28 md:h-28 object-contain group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-all duration-500"
                     />
                   )}

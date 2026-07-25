@@ -9,7 +9,7 @@ import Footer from '../components/Footer'
 export default function CategoryPage() {
   const { categoryId } = useParams()
   const { categories, subcategories, items, loading, error } = useMenu()
-  const { language, toggleLanguage, t } = useLanguage()
+  const { t } = useLanguage()
   const [layoutOverride, setLayoutOverride] = useState(null)
   const [activeSubcategory, setActiveSubcategory] = useState(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -18,10 +18,12 @@ export default function CategoryPage() {
   const isScrollingToRef = useRef(false)
 
   const category = categories.find((c) => c.id === categoryId)
-  const categoryItems = items.filter((item) => item.category_id === categoryId)
+  const categoryItems = items.filter(
+    (item) => item.category_id === categoryId && item.available
+  )
   const categorySubcategories = subcategories
     .filter((sc) => sc.category_id === categoryId)
-    .sort((a, b) => a.sort_order - b.sort_order)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
   const activeLayout = layoutOverride || category?.layout || 'grid-2'
 
   // Group items by subcategory
@@ -29,7 +31,7 @@ export default function CategoryPage() {
     subcategory: sc,
     items: categoryItems
       .filter((item) => item.subcategory_id === sc.id)
-      .sort((a, b) => a.sort_order - b.sort_order),
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
   })).filter((group) => group.items.length > 0)
 
   // Items without a subcategory
@@ -67,13 +69,17 @@ export default function CategoryPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [hasSubcategories, groupedItems])
 
-  // Scroll active pill into view in the horizontal nav
+  // Center the active pill inside the nav strip WITHOUT moving the window.
+  // (scrollIntoView would scroll the whole page to the top since the nav sits
+  // near the top of the document.)
   useEffect(() => {
     if (!activeSubcategory || !navRef.current) return
-    const activeBtn = navRef.current.querySelector(`[data-sub-id="${activeSubcategory}"]`)
-    if (activeBtn) {
-      activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-    }
+    const nav = navRef.current
+    const activeBtn = nav.querySelector(`[data-sub-id="${activeSubcategory}"]`)
+    if (!activeBtn) return
+    const targetLeft =
+      activeBtn.offsetLeft - nav.offsetWidth / 2 + activeBtn.offsetWidth / 2
+    nav.scrollTo({ left: targetLeft, behavior: 'smooth' })
   }, [activeSubcategory])
 
   const scrollToSection = useCallback((subcategoryId) => {
@@ -97,7 +103,7 @@ export default function CategoryPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-board flex items-center justify-center">
-        <span className="font-chalk text-3xl text-gold animate-pulse">Loading...</span>
+        <span className="font-chalk text-3xl text-gold animate-pulse">{t('Се вчитува...', 'Loading...')}</span>
       </div>
     )
   }
@@ -123,7 +129,7 @@ export default function CategoryPage() {
         {/* Back arrow + title + grid toggle */}
         <div className="grid grid-cols-3 items-center mt-2">
           <div className="justify-self-start">
-            <Link to="/" className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/40 text-white">
+            <Link to="/" aria-label={t('Назад кон мени', 'Back to menu')} className="inline-flex items-center justify-center w-11 h-11 rounded-full border border-white/40 text-white">
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
@@ -134,58 +140,62 @@ export default function CategoryPage() {
             {t(category.name_mk, category.name_en)}
           </h1>
 
-          <div className="flex gap-2 justify-self-end">
+          <div className="flex justify-self-end">
             <button
-              onClick={() => setLayoutOverride('grid-2')}
-              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
+              onClick={() => setLayoutOverride(activeLayout === 'grid-2' ? 'grid-1' : 'grid-2')}
+              aria-label={
                 activeLayout === 'grid-2'
-                  ? 'border-white text-white'
-                  : 'border-white/30 text-white/40'
-              }`}
+                  ? t('Приказ во една колона', 'Switch to single-column view')
+                  : t('Приказ во две колони', 'Switch to two-column view')
+              }
+              className="w-11 h-11 rounded-full border border-white/40 text-white flex items-center justify-center transition-colors hover:border-white"
             >
-              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="0" y="0" width="7" height="7" rx="1" />
-                <rect x="9" y="0" width="7" height="7" rx="1" />
-                <rect x="0" y="9" width="7" height="7" rx="1" />
-                <rect x="9" y="9" width="7" height="7" rx="1" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setLayoutOverride('grid-1')}
-              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors ${
-                activeLayout === 'grid-1'
-                  ? 'border-white text-white'
-                  : 'border-white/30 text-white/40'
-              }`}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="0" y="0" width="16" height="7" rx="1" />
-                <rect x="0" y="9" width="16" height="7" rx="1" />
-              </svg>
+              {activeLayout === 'grid-2' ? (
+                /* Currently 2 columns → tap for single column */
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="0" y="0" width="16" height="7" rx="1" />
+                  <rect x="0" y="9" width="16" height="7" rx="1" />
+                </svg>
+              ) : (
+                /* Currently 1 column → tap for two columns */
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="0" y="0" width="7" height="7" rx="1" />
+                  <rect x="9" y="0" width="7" height="7" rx="1" />
+                  <rect x="0" y="9" width="7" height="7" rx="1" />
+                  <rect x="9" y="9" width="7" height="7" rx="1" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
 
         <div className="w-16 h-px bg-chalk-muted mx-auto my-3 opacity-50" />
 
-        {/* Subcategory navigation chips */}
+        {/* Subcategory navigation chips — sticky so they stay reachable while
+            scrolling a long category */}
         {hasSubcategories && (
-          <div ref={navRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 mb-4 justify-center flex-wrap">
-            {groupedItems.map((group) => (
-              <button
-                key={group.subcategory.id}
-                data-sub-id={group.subcategory.id}
-                onClick={() => scrollToSection(group.subcategory.id)}
-                style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.4)' }}
-                className={`px-3 py-1 rounded-full text-lg font-chalk tracking-wide whitespace-nowrap transition-all duration-200 border ${
-                  activeSubcategory === group.subcategory.id
-                    ? 'underline underline-offset-4'
-                    : ''
-                }`}
-              >
-                {t(group.subcategory.name_mk, group.subcategory.name_en)}
-              </button>
-            ))}
+          <div
+            ref={navRef}
+            className="sticky top-0 z-20 w-screen ml-[calc(50%-50vw)] px-[10%] py-2 mb-4 backdrop-blur-sm flex gap-2 overflow-x-auto scrollbar-hide"
+          >
+            {groupedItems.map((group) => {
+              const isActive = activeSubcategory === group.subcategory.id
+              return (
+                <button
+                  key={group.subcategory.id}
+                  data-sub-id={group.subcategory.id}
+                  onClick={() => scrollToSection(group.subcategory.id)}
+                  aria-current={isActive ? 'true' : undefined}
+                  className={`px-4 py-2 rounded-full text-lg font-chalk tracking-wide whitespace-nowrap transition-colors duration-200 border ${
+                    isActive
+                      ? 'bg-white text-gray-900 border-white'
+                      : 'text-white border-white/40 hover:border-white'
+                  }`}
+                >
+                  {t(group.subcategory.name_mk, group.subcategory.name_en)}
+                </button>
+              )
+            })}
           </div>
         )}
 
@@ -257,7 +267,8 @@ export default function CategoryPage() {
       {showScrollTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-30 w-10 h-10 rounded-full border border-white/40 text-white flex items-center justify-center bg-board/80 backdrop-blur-sm transition-opacity"
+          aria-label={t('Кон врвот', 'Scroll to top')}
+          className="fixed bottom-6 right-6 z-30 w-11 h-11 rounded-full border border-white/40 text-white flex items-center justify-center bg-board/80 backdrop-blur-sm transition-opacity"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />

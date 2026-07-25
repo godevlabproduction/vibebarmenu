@@ -27,12 +27,12 @@ export default function AdminLayout({ activeTab, onTabChange, children }) {
 
       {/* Tab nav */}
       <nav className="bg-white border-b border-gray-200 px-4">
-        <div className="max-w-3xl mx-auto flex">
+        <div className="max-w-3xl mx-auto flex overflow-x-auto scrollbar-hide">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap shrink-0 transition-colors ${
                 activeTab === tab.id
                   ? 'border-gray-900 text-gray-900'
                   : 'border-transparent text-gray-500 hover:text-gray-700'

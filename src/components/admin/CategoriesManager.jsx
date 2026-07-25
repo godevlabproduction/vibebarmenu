@@ -72,7 +72,7 @@ function SortableCategoryItem({ cat, isEditing, editMk, editEn, editImagePreview
       ) : (
         <div className="flex items-center gap-2">
           {/* Drag handle */}
-          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 shrink-0 touch-none">
+          <button {...attributes} {...listeners} aria-label="Промени редослед" className="cursor-grab active:cursor-grabbing w-9 h-11 flex items-center justify-center text-gray-300 hover:text-gray-500 shrink-0 touch-none">
             <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor">
               <circle cx="5" cy="3" r="1.5" /><circle cx="11" cy="3" r="1.5" />
               <circle cx="5" cy="8" r="1.5" /><circle cx="11" cy="8" r="1.5" />
@@ -98,19 +98,19 @@ function SortableCategoryItem({ cat, isEditing, editMk, editEn, editImagePreview
           </div>
 
           {/* Layout toggle */}
-          <button onClick={() => onToggleLayout(cat)} className={`text-xs px-2 py-1 rounded-md font-medium transition-colors shrink-0 ${cat.layout === 'grid-1' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+          <button onClick={() => onToggleLayout(cat)} aria-label={cat.layout === 'grid-1' ? 'Една колона — префрли на две' : 'Две колони — префрли на една'} className={`text-xs px-2 min-h-11 rounded-md font-medium transition-colors shrink-0 ${cat.layout === 'grid-1' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
             {cat.layout === 'grid-1' ? '1 кол' : '2 кол'}
           </button>
 
           {/* Edit */}
-          <button onClick={() => onStartEdit(cat)} className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors">
+          <button onClick={() => onStartEdit(cat)} aria-label="Уреди" className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
           </button>
 
           {/* Delete */}
-          <button onClick={() => onDelete(cat.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+          <button onClick={() => onDelete(cat.id)} aria-label="Избриши" className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>

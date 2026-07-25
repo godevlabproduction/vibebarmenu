@@ -183,18 +183,20 @@ export default function SubcategoriesManager() {
                   <button
                     onClick={() => moveSubcategory(sub, 'up')}
                     disabled={idx === 0}
-                    className="text-gray-300 hover:text-gray-500 disabled:opacity-20 p-0.5"
+                    aria-label="Помести нагоре"
+                    className="w-11 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 disabled:opacity-20"
                   >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                     </svg>
                   </button>
                   <button
                     onClick={() => moveSubcategory(sub, 'down')}
                     disabled={idx === filteredSubs.length - 1}
-                    className="text-gray-300 hover:text-gray-500 disabled:opacity-20 p-0.5"
+                    aria-label="Помести надолу"
+                    className="w-11 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 disabled:opacity-20"
                   >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
@@ -207,14 +209,14 @@ export default function SubcategoriesManager() {
                 </div>
 
                 {/* Edit */}
-                <button onClick={() => startEdit(sub)} className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors">
+                <button onClick={() => startEdit(sub)} aria-label="Уреди" className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                 </button>
 
                 {/* Delete */}
-                <button onClick={() => setDeleteTarget(sub.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+                <button onClick={() => setDeleteTarget(sub.id)} aria-label="Избриши" className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>

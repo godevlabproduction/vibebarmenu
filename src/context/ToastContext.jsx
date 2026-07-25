@@ -24,7 +24,7 @@ export function ToastProvider({ children }) {
       {children}
 
       {/* Toast container */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2" role="status" aria-live="polite">
         {toasts.map((toast) => (
           <div
             key={toast.id}
@@ -35,6 +35,7 @@ export function ToastProvider({ children }) {
             <span>{toast.message}</span>
             <button
               onClick={() => dismissToast(toast.id)}
+              aria-label="Затвори"
               className="ml-2 text-white/70 hover:text-white"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

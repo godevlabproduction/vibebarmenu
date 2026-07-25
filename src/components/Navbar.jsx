@@ -10,7 +10,9 @@ export default function Navbar() {
       <div className="flex items-center gap-1 font-menu text-sm">
         <button
           onClick={() => language !== 'mk' && toggleLanguage()}
-          className={`px-1.5 py-1 transition-colors ${
+          aria-label="Македонски"
+          aria-pressed={language === 'mk'}
+          className={`min-w-11 min-h-11 flex items-center justify-center transition-colors ${
             language === 'mk' ? 'text-white' : 'text-chalk-muted hover:text-white'
           }`}
         >
@@ -19,7 +21,9 @@ export default function Navbar() {
         <span className="text-chalk-muted/50">|</span>
         <button
           onClick={() => language !== 'en' && toggleLanguage()}
-          className={`px-1.5 py-1 transition-colors ${
+          aria-label="English"
+          aria-pressed={language === 'en'}
+          className={`min-w-11 min-h-11 flex items-center justify-center transition-colors ${
             language === 'en' ? 'text-white' : 'text-chalk-muted hover:text-white'
           }`}
         >
@@ -37,12 +41,12 @@ export default function Navbar() {
       </Link>
 
       {/* Social icons */}
-      <div className="flex items-center justify-end gap-4">
+      <div className="flex items-center justify-end gap-1">
         <a
           href="https://www.facebook.com/profile.php?id=61575148773577"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-white"
+          className="text-white flex items-center justify-center w-11 h-11"
           aria-label="Facebook"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -53,7 +57,7 @@ export default function Navbar() {
           href="https://www.instagram.com/vibebarofficial/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-white"
+          className="text-white flex items-center justify-center w-11 h-11"
           aria-label="Instagram"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

@@ -203,6 +203,7 @@ export default function MenuItemsTable({ onEdit }) {
               setSearchQuery('')
               resetPageAndSelection()
             }}
+            aria-label="Исчисти пребарување"
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -288,7 +289,7 @@ export default function MenuItemsTable({ onEdit }) {
         <button onClick={() => handleSort('price')} className="w-16 text-right flex items-center justify-end hover:text-gray-700 shrink-0">
           Цена <SortIcon field="price" sortField={sortField} sortDirection={sortDirection} />
         </button>
-        <div className="w-28 shrink-0" />
+        <div className="w-[132px] shrink-0" />
       </div>
 
       {/* Product cards */}
@@ -336,7 +337,7 @@ export default function MenuItemsTable({ onEdit }) {
               <div className="flex items-center gap-2 mt-0.5 sm:hidden">
                 <span className="text-xs text-gray-400">{getCategoryName(item.category_id)}</span>
                 <span className="text-xs text-gray-300">&middot;</span>
-                <span className="text-xs font-medium text-gray-700">{item.price} ден.</span>
+                <span className="text-xs font-medium text-gray-700 tabular-nums">{item.price} ден.</span>
               </div>
             </div>
 
@@ -344,27 +345,33 @@ export default function MenuItemsTable({ onEdit }) {
             <span className="hidden sm:block w-20 shrink-0 text-xs text-gray-500 truncate">
               {getCategoryName(item.category_id)}
             </span>
-            <span className="hidden sm:block w-16 shrink-0 text-right text-sm font-medium text-gray-700">
+            <span className="hidden sm:block w-16 shrink-0 text-right text-sm font-medium text-gray-700 tabular-nums">
               {item.price}
             </span>
 
             {/* Actions */}
-            <div className="flex items-center gap-1 w-28 justify-end shrink-0">
+            <div className="flex items-center justify-end shrink-0">
               <button
                 onClick={() => toggleAvailability(item)}
-                className={`w-9 h-5 rounded-full relative transition-colors ${
-                  item.available ? 'bg-green-500' : 'bg-gray-300'
+                role="switch"
+                aria-checked={item.available}
+                aria-label={item.available ? 'Достапен — исклучи' : 'Недостапен — вклучи'}
+                className={`w-11 h-11 flex items-center justify-center transition-colors ${
+                  item.available ? 'text-green-500' : 'text-gray-300'
                 }`}
               >
-                <span
-                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${
-                    item.available ? 'left-4' : 'left-0.5'
-                  }`}
-                />
+                <span className={`w-9 h-5 rounded-full relative transition-colors ${item.available ? 'bg-green-500' : 'bg-gray-300'}`}>
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${
+                      item.available ? 'left-4' : 'left-0.5'
+                    }`}
+                  />
+                </span>
               </button>
               <button
                 onClick={() => onEdit(item)}
-                className="p-2 text-gray-400 hover:text-gray-700 transition-colors"
+                aria-label="Уреди"
+                className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -372,7 +379,8 @@ export default function MenuItemsTable({ onEdit }) {
               </button>
               <button
                 onClick={() => setDeleteTarget(item.id)}
-                className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                aria-label="Избриши"
+                className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

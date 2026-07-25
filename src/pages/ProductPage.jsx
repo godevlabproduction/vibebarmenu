@@ -1,22 +1,9 @@
 import { Link, useParams } from 'react-router-dom'
 import { useMenu } from '../hooks/useMenu'
 import { useLanguage } from '../context/LanguageContext'
+import { TAG_LABELS, TAG_STYLES } from '../lib/tags'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-
-const TAG_LABELS = {
-  vegan: { mk: 'Вегански', en: 'Vegan' },
-  'gluten-free': { mk: 'Без глутен', en: 'Gluten-free' },
-  'sugar-free': { mk: 'Без шеќер', en: 'Sugar-free' },
-  'non-alcoholic': { mk: 'Безалкохолен', en: 'Non-alcoholic' },
-}
-
-const TAG_STYLES = {
-  vegan: 'border-green-400/40 text-green-400/80',
-  'gluten-free': 'border-yellow-400/40 text-yellow-400/80',
-  'sugar-free': 'border-blue-400/40 text-blue-400/80',
-  'non-alcoholic': 'border-purple-400/40 text-purple-400/80',
-}
 
 export default function ProductPage() {
   const { categoryId, itemId } = useParams()
@@ -24,12 +11,14 @@ export default function ProductPage() {
   const { t } = useLanguage()
 
   const category = categories.find((c) => c.id === categoryId)
-  const item = items.find((i) => i.id === itemId)
+  // Match on category too, so a mismatched URL doesn't show an item under the
+  // wrong category label.
+  const item = items.find((i) => i.id === itemId && i.category_id === categoryId)
 
   if (loading) {
     return (
       <div className="min-h-screen bg-board flex items-center justify-center">
-        <span className="font-chalk text-3xl text-gold animate-pulse">Loading...</span>
+        <span className="font-chalk text-3xl text-gold animate-pulse">{t('Се вчитува...', 'Loading...')}</span>
       </div>
     )
   }
@@ -58,7 +47,8 @@ export default function ProductPage() {
       {/* Back arrow */}
       <Link
         to={`/menu/${categoryId}`}
-        className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/40 text-white"
+        aria-label={t('Назад', 'Back')}
+        className="inline-flex items-center justify-center w-11 h-11 rounded-full border border-white/40 text-white"
       >
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -89,7 +79,7 @@ export default function ProductPage() {
 
           {/* Price */}
           <div className="mt-3">
-            <span className="font-menu text-2xl text-gold font-normal">
+            <span className="font-menu text-2xl text-gold font-normal tabular-nums">
               {item.price} ден.
             </span>
           </div>
